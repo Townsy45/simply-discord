@@ -1,6 +1,6 @@
 {
   "name": "simply-discord",
-  "version": "1.0.1",
+  "version": "1.1.1",
   "description": "A simple and easy to use Discord bot command handler, built for Discord.js",
   "main": "index.js",
   "scripts": {
@@ -18,7 +18,6 @@
   "homepage": "https://github.com/Townsy45/simply-discord#readme",
   "dependencies": {
     "discord.js": "^12.5.1",
-    "dotenv": "^8.2.0",
     "mustang-log": "^1.1.2"
   }
 }

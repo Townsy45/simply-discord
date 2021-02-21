@@ -60,3 +60,13 @@ module.exports = {
   }
 };
 ```
+
+Example of the event structure:
+```js
+module.exports = async (client, EVENT_PARAMS) => {
+  /* 
+     EVENT_PARAMS are any params from the event itself, 
+      check the Discord.js Docs for more info.
+  */ 
+};
+```

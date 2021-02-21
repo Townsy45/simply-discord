@@ -4,7 +4,7 @@ const fs = require('fs');
 const {join} = require('path');
 
 /**
- * SimplyDiscord test
+ * SimplyDiscord
  * @class
  */
 class SimplyDiscord {

@@ -1,3 +1,9 @@
+[![forthebadge](https://forthebadge.com/images/badges/made-with-javascript.svg)](https://forthebadge.com)
+[![forthebadge](https://forthebadge.com/images/badges/not-a-bug-a-feature.svg)](https://forthebadge.com)
+[![forthebadge](https://forthebadge.com/images/badges/check-it-out.svg)](https://forthebadge.com)
+
+[![NPM](https://nodei.co/npm/simply-discord.png)](https://nodei.co/npm/simply-discord/)
+
 # Simply Discord
 
 A simple Discord bot command handler that is easy to use, built for Discord.js

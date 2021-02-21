@@ -12,6 +12,7 @@ A simple Discord bot command handler that is easy to use, built for Discord.js
 
 ```js
 const { client } = new SimplyDiscord({
+  defaultPrefix: '-', // The default prefix to use on the bot
   commandsDir: './commands', // The commands directory (Default: './commands')
   eventsDir: './events', // The events directory (Default: './events')
   allowDMs: false // If the bot should allow commands in DMs (Default: True)

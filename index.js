@@ -27,8 +27,8 @@ class SimplyDiscord {
     }
 
     this.defaultPrefix = options.defaultPrefix || '!';
-    this.commandsDir = options.commandsDir || './commands';
-    this.eventsDir = options.eventsDir || './events';
+    this.commandsDir = options.commandsDir || 'commands';
+    this.eventsDir = options.eventsDir || 'events';
     this.allowDMs = options.allowDMs || true;
     this.client = client || new Discord.Client();
 
@@ -142,7 +142,7 @@ class SimplyDiscord {
 
 // Event Handler
 async function loadEvents(client, dir) {
-  const eventDir = join(__dirname, dir);
+  const eventDir = join(require.main.path, dir);
   if (!client.events) client.events = new Discord.Collection();
 
   const events = await getAllFiles(eventDir);
@@ -163,7 +163,7 @@ async function loadEvents(client, dir) {
 
 // Command Handler
 async function loadCommands(client, dir) {
-  const commandDir = join(__dirname, dir);
+  const commandDir = join(require.main.path, dir);
   // Set collections
   client.commands = new Discord.Collection();
   client.aliases = new Discord.Collection();

@@ -77,3 +77,22 @@ module.exports = async (client, EVENT_PARAMS) => {
   */ 
 };
 ```
+## TODO
+
+<details open="open">
+  <summary>Future Ideas</summary>
+  <ol>
+    <li>
+      <a>Add an option to restart when updating Directories.</a>
+    </li>
+    <li>
+      <a> Look into finding a better way to handle the guild checking.</a>
+      <ul>
+        <li><a> Relates to index.js Message event get prefix.</a></li>
+      </ul>
+    </li>
+    <li><a>Add a cooldown system (Simply Version)</a></li>
+    <li><a>Add setCooldown(time, guildWide) set the time and if to apply to everyone in the guild.</a></li>
+    <li><a>Add toggleCooldown(true) set the cooldown to True/False or toggle on/off</a></li>
+  </ol>
+</details>

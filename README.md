@@ -45,10 +45,10 @@ const { client } = new SimplyDiscord({
 
 | Function | Params | Info |
 | ------------- | :---: | ------------- |
-| **setCommandsDir**  | `(Directory)`  | Update the folder where your commands are located |
-| **setDefaultPrefix**  | `(Prefix)`  | Update the default prefix |
-| **setGuildPrefix**  | `(GuildID, Prefix)`  | Set the guild prefix to the client.prefixes collection |
-| **setEventsDir**  | `(Directory)`  | Update the folder where your events are located |
+| **setCommandsDir**  | `('Directory')`  | Update the folder where your commands are located |
+| **setDefaultPrefix**  | `('Prefix')`  | Update the default prefix |
+| **setGuildPrefix**  | `('GuildID', 'Prefix')`  | Set the guild prefix to the client.prefixes collection |
+| **setEventsDir**  | `('Directory')`  | Update the folder where your events are located |
 | **toggleDMs**  | `(True/False)`  | Toggle if DMs should be allowed, sending nothing with switch it |
 | **reload**  | `('commands'/'events')`  | Reload commands/events or both |
 

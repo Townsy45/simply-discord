@@ -8,22 +8,49 @@
 
 A simple Discord bot command handler that is easy to use, built for Discord.js
 
-## Options
-
 ```js
 const { client } = new SimplyDiscord({
-  defaultPrefix: '-', // The default prefix to use on the bot
-  commandsDir: './commands', // The commands directory (Default: './commands')
-  eventsDir: './events', // The events directory (Default: './events')
-  allowDMs: false // If the bot should allow commands in DMs (Default: True)
+  defaultPrefix: '-',
+  commandsDir: './commands',
+  eventsDir: './events',
+  allowDMs: false
 })
+
 .setGuildPrefix('GUILD_ID', 'NEW_PREFIX')
 .setCommandsDir('NEW_DIRECTORY')
 .setEventsDir('NEW_DIRECTORY')
 .setDefaultPrefix('NEW_DEFAULT_PREFIX')
-.toggleDMs() // True / False (Default will switch the oppisite of current state)
-.reload(); // 'commands' / 'events' (Default will reload both)
+.toggleDMs()
+.reload();
 ```
+
+**Params:**
+
+| Param | Type | Info
+| ------------- | ------------- | ------------- |
+| client  | Discord.Client  | The Discord client, if not passed one will be created
+| options  | Object  | More info below
+
+**Available Options:**
+
+| Option | Type | Default | Info |
+| ------------- | ------------- | ------------- | ------------- |
+| options  | Object  | 'none' | Options to configure the handler
+| options.defaultPrefix  | String  | ! | Default prefix to use in-case of no guild prefix
+| options.commandsDir  | String  | ./commands | Folder containing all your commands
+| options.eventsDir  | String  | ./events | Folder containing your event files
+| options.allowDMs  | Boolean  | true | Bot should respond in DMs?
+
+**Handler Functions:**
+
+| Function | Params | Info |
+| ------------- | ------------- | ------------- |
+| setDefaultPrefix  | (Prefix)  | Update the default prefix |
+| setGuildPrefix  | (GuildID, Prefix)  | Set the guild prefix to the client.prefixes collection |
+| setCommandsDir  | (Directory)  | Update the folder where your commands are located |
+| setEventsDir  | (Directory)  | Update the folder where your events are located |
+| toggleDMs  | (True/False)  | Toggle if DMs should be allowed, sending nothing with switch it |
+| reload  | ('commands'/'events')  | Reload commands/events or both |
 
 ## Usage
 
@@ -41,19 +68,17 @@ new SimplyDiscord(client, {
 ```js
 const SimplyDiscord = require('simply-discord');
 
-/*
-  Client is a property of the SimplyDiscord Class, 
-    use this to access the Discord Client
-*/
+/* Client is a property of the SimplyDiscord Class, use this to access the Discord Client */
 const { client } = new SimplyDiscord({ commandsDir: 'lib/commands' });
 
-/*
-  or assign it to a variable and use that to access the props and functions
-*/
+/* Assign it to a variable and use that to access the props and functions */
 
 const simply = new SimplyDiscord({ commandsDir: 'lib/commands' });
-
 const client = simply.client;
+
+/*  Minimum usage  */
+
+const simply = new SimplyDiscord();
 ```
 
 Example of the command structure:
@@ -62,15 +87,15 @@ module.exports = {
   name: 'ping',
   aliases: ['p'],
   category: 'Utils',
-  async run (client, message, args) {
-    
+  async run (client, handler, message, args) {
+    // Your command code ...
   }
 };
 ```
 
 Example of the event structure:
 ```js
-module.exports = async (client, EVENT_PARAMS) => {
+module.exports = async (client, handler, EVENT_PARAMS) => {
   /* 
      EVENT_PARAMS are any params from the event itself, 
       check the Discord.js Docs for more info.

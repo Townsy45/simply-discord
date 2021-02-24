@@ -43,7 +43,7 @@ class SimplyDiscord {
       try {
         await log('Attempting to load COMMANDS and EVENTS ...', logs.load, true);
         await loadCommands(this.client, this.commandsDir);
-        await loadEvents(this.client, this.eventsDir);
+        await loadEvents(this, this.client, this.eventsDir);
         if (!this.client.prefixes) this.client.prefixes = new Discord.Collection();
 
         this.client.on('message', async (message) => {
@@ -58,7 +58,7 @@ class SimplyDiscord {
 
           if (!this.client.commands) return log('You have no commands available', logs.warn, true);
           const command = this.client.commands.get(cmd) ? this.client.commands.get(cmd) : this.client.commands.get(this.client.aliases.get(cmd));
-          if (command) await command.run(this.client, message, args);
+          if (command) await command.run(this.client, this, message, args);
         });
       } catch (err) {
         await log(`An error occurred - ${err.message || err}`, 'ERROR', true);
@@ -130,7 +130,7 @@ class SimplyDiscord {
     await log(`RE-LOADING ${section === 'events' ? '' : 'COMMANDS '}${!section ? 'AND ' : ''}${section === 'commands' ?  '' : 'EVENTS '}...`, logs.load, true);
     try {
       if (!section || section === 'commands') await loadCommands(this.client, this.commandsDir);
-      if (!section || section === 'events') await loadEvents(this.client, this.eventsDir);
+      if (!section || section === 'events') await loadEvents(this, this.client, this.eventsDir);
       await log('Reload Complete!', logs.done, true);
     } catch (err) {
       await log(`Error while restarting the instance - ${err.message || err} - ${err.stack}`, 'ERROR', true);
@@ -141,7 +141,7 @@ class SimplyDiscord {
 }
 
 // Event Handler
-async function loadEvents(client, dir) {
+async function loadEvents(instance, client, dir) {
   const eventDir = join(require.main.path, dir);
   if (!client.events) client.events = new Discord.Collection();
 
@@ -151,7 +151,7 @@ async function loadEvents(client, dir) {
     const eventName = file.split('.').shift();
     if (!event || !eventName) continue;
     client.events.set(eventName, event);
-    client.on(eventName, event.bind(null, client));
+    client.on(eventName, event.bind(null, client, instance));
     delete require.cache[require.resolve(`${eventDir}/${file}`)];
   }
 

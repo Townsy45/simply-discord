@@ -81,7 +81,8 @@ const client = simply.client;
 const simply = new SimplyDiscord();
 ```
 
-Example of the command structure:
+### Command Structure Example:
+
 ```js
 module.exports = {
   name: 'ping',
@@ -93,7 +94,8 @@ module.exports = {
 };
 ```
 
-Example of the event structure:
+### Event Structure Example:
+
 ```js
 module.exports = async (client, handler, EVENT_PARAMS) => {
   /* 

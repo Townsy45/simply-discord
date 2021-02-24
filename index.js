@@ -2,6 +2,9 @@ const Discord = require('discord.js');
 const {log} = require('mustang-log');
 const fs = require('fs');
 const {join} = require('path');
+const moment = require('moment');
+require('moment-duration-format')(moment);
+const ms = require('ms');
 
 /**
  * SimplyDiscord
@@ -26,18 +29,27 @@ class SimplyDiscord {
       client = null;
     }
 
-    this.defaultPrefix = options.defaultPrefix || '!';
-    this.commandsDir = options.commandsDir || 'commands';
-    this.eventsDir = options.eventsDir || 'events';
-    this.allowDMs = options.allowDMs || true;
-    this.client = client || new Discord.Client();
-
     this.setCommandsDir = this.setCommandsDir.bind(this);
     this.setEventsDir = this.setEventsDir.bind(this);
     this.setDefaultPrefix = this.setDefaultPrefix.bind(this);
     this.setGuildPrefix = this.setGuildPrefix.bind(this);
+    this.setCooldown = this.setCooldown.bind(this);
     this.toggleDMs = this.toggleDMs.bind(this);
     this.reload = this.reload.bind(this);
+
+    // Set the default PREFIX of the bot
+    this.defaultPrefix = options.defaultPrefix || '!';
+    // Assign the Directories
+    this.commandsDir = options.commandsDir || 'commands';
+    this.eventsDir = options.eventsDir || 'events';
+    // Should DM commands be allowed?
+    this.allowDMs = options.allowDMs || true;
+    // Cooldown Settings
+    this.cooldown = options.cooldown ? this.setCooldown(options.cooldown) : 0;
+    this.useCooldown = false;
+    this.cooldownGlobal = false;
+    // Define the client
+    this.client = client || new Discord.Client();
 
     (async () => {
       try {
@@ -58,7 +70,11 @@ class SimplyDiscord {
 
           if (!this.client.commands) return log('You have no commands available', logs.warn, true);
           const command = this.client.commands.get(cmd) ? this.client.commands.get(cmd) : this.client.commands.get(this.client.aliases.get(cmd));
-          if (command) await command.run(this.client, message, args);
+          if (command) {
+            // Handle the cooldown
+            if (await _handleCooldown(message, cmd)) return;
+            await command.run(this.client, message, args);
+          }
         });
       } catch (err) {
         await log(`An error occurred - ${err.message || err}`, 'ERROR', true);
@@ -135,6 +151,23 @@ class SimplyDiscord {
     } catch (err) {
       await log(`Error while restarting the instance - ${err.message || err} - ${err.stack}`, 'ERROR', true);
     }
+    return this;
+  }
+
+  setCooldown(cooldown, global = false) {
+    if (!cooldown) return this;
+
+    if (typeof cooldown === 'object' && !Array.isArray(cooldown)) {
+      // Set the global property after some checks
+      if (cooldown.global && typeof cooldown.global === 'boolean') global = cooldown.global;
+      if (global !== this.cooldownGlobal) this.cooldownGlobal = global;
+      // Set cooldown to the time so it can be updated below
+      cooldown = ms(cooldown.time) || this.cooldown;
+    }
+
+    cooldown = ms(cooldown); // Use MS to convert from 2s to 2000 ms
+    if (cooldown && cooldown > 0 && cooldown !== this.cooldown) this.cooldown = cooldown;
+
     return this;
   }
 
@@ -219,4 +252,34 @@ const logs = {
   done: {name: 'DONE', bgColor: '#2bba2b', textColor: '#ffffff'},
   load: {name: 'LOADING', bgColor: '#0042a2', textColor: '#ffffff'},
   warn: {name: 'WARNING', bgColor: '#d2cb00', textColor: '#ffffff'}
+}
+
+
+async function _handleCooldown(message, command) {
+  // Return if any of this is false
+  if (!message || !this.useCooldown || this.cooldown < 1) return;
+  // Set the collection if it doesnt exist
+  if (this.client.cooldowns) this.client.cooldowns = new Discord.Collection();
+  if (this.client.globalCooldowns) this.client.globalCooldowns = new Discord.Collection();
+  // Get the ID to check, global uses the command ID
+  const id = this.cooldownGlobal ?  `${message.guild.id}-${command}` : message.author.id;
+  let cd = this.client.cooldowns.get(id);
+  const now = Date.now();
+  // If cooldown is not set then set it for now
+  if (!cd) {
+    cd = now;
+    this.client.cooldowns.set(id, cd);
+  }
+  const diff = (now - cd);
+  // If the cooldown time has been waited then remove and return
+  if (this.cooldown >= diff) {
+    // Remove the cooldown
+    this.client.cooldowns.delete(id);
+    return this;
+  }
+  // Return cooldown message
+  await message.reply(`The command ${message.guild ? this.client.prefixes.get(message.guild.id) : this.defaultPrefix}${command} is still on cooldown for ${moment.duration(diff, 'milliseconds').format('d [days], h [hours], m [min], s [sec]')}`)
+
+  return this;
+
 }

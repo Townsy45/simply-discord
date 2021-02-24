@@ -29,17 +29,17 @@ const { client } = new SimplyDiscord({
 | Param | Type | Info
 | ------------- | :---: | ------------- |
 | **client**  | `Discord.Client`  | The Discord client, if not passed one will be created
-| **options**  | `Object`  | More info below
+| **options**  | `object`  | More info below
 
 **Available Options:**
 
 | Option | Type | Default | Info |
 | ------------- | :---: | :---: | ------------- |
-| **options**  | `Object`  | `none` | Options to configure the handler
-| **options.defaultPrefix**  | `String`  | `!` | Default prefix to use in-case of no guild prefix
-| **options.commandsDir**  | `String`  | `./commands` | Folder containing all your commands
-| **options.eventsDir**  | `String`  | `./events` | Folder containing your event files
-| **options.allowDMs**  | `Boolean`  | `true` | Bot should respond in DMs?
+| **options**  | `object`  | `undefined` | Options to configure the handler
+| **options.defaultPrefix**  | `string`  | `!` | Default prefix to use in-case of no guild prefix
+| **options.commandsDir**  | `string`  | `./commands` | Folder containing all your commands
+| **options.eventsDir**  | `string`  | `./events` | Folder containing your event files
+| **options.allowDMs**  | `boolean`  | `true` | Bot should respond in DMs?
 
 **Handler Functions:**
 
@@ -49,7 +49,7 @@ const { client } = new SimplyDiscord({
 | **setDefaultPrefix**  | `('Prefix')`  | Update the default prefix |
 | **setGuildPrefix**  | `('GuildID', 'Prefix')`  | Set the guild prefix to the client.prefixes collection |
 | **setEventsDir**  | `('Directory')`  | Update the folder where your events are located |
-| **toggleDMs**  | `(True/False)`  | Toggle if DMs should be allowed, sending nothing with switch it |
+| **toggleDMs**  | `(true/false)`  | Toggle if DMs should be allowed, sending nothing with switch it |
 | **reload**  | `('commands'/'events')`  | Reload commands/events or both |
 
 ## Usage

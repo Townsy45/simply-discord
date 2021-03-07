@@ -97,11 +97,15 @@ module.exports = {
 ### Event Structure Example:
 
 ```js
-module.exports = async (client, handler, EVENT_PARAMS) => {
-  /* 
-     EVENT_PARAMS are any params from the event itself, 
-      check the Discord.js Docs for more info.
-  */ 
+module.exports = {
+  name: 'ready',
+  once: true,
+  async run (client, handler, EVENT_PARAMS) {
+    /* 
+       EVENT_PARAMS are any params from the event itself, 
+        check the Discord.js Docs for more info.
+    */ 
+  }
 };
 ```
 ## TODO

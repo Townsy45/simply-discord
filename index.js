@@ -147,12 +147,14 @@ async function loadEvents(instance, client, dir) {
 
   const events = await getAllFiles(eventDir);
   for (const file of events.files) {
-    const event = require(`${eventDir}/${file}`);
-    const eventName = file.split('.').shift();
-    if (!event || !eventName) continue;
-    client.events.set(eventName, event);
-    client.on(eventName, event.bind(null, client, instance));
-    delete require.cache[require.resolve(`${eventDir}/${file}`)];
+    const event = require(file);
+    if (event && typeof event === 'function') {
+      const eventName = file.split('.').shift();
+      if (!event || !eventName) continue;
+      client.events.set(eventName, event);
+      client.on(eventName, event.bind(null, client, instance));
+      delete require.cache[require.resolve(file)];
+    }
   }
 
   const amount = client.events ? client.events.size : 0;

@@ -148,11 +148,13 @@ async function loadEvents(instance, client, dir) {
   const events = await getAllFiles(eventDir);
   for (const file of events.files) {
     const event = require(file);
-    if (event && typeof event === 'function') {
-      const eventName = file.split('.').shift();
-      if (!event || !eventName) continue;
-      client.events.set(eventName, event);
-      client.on(eventName, event.bind(null, client, instance));
+    if (event && event.name && typeof event.run === 'function') {
+      client.events.set(event.name, event);
+      if (event.once) {
+        client.once(event.name, event.run.bind(null, client, instance));
+      } else {
+        client.on(event.name, event.run.bind(null, client, instance));
+      }
       delete require.cache[require.resolve(file)];
     }
   }

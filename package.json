@@ -1,6 +1,6 @@
 {
   "name": "simply-discord",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "A simple and easy to use Discord bot command handler, built for Discord.js",
   "main": "index.js",
   "scripts": {

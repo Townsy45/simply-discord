@@ -30,7 +30,10 @@ class SimplyDiscord {
     this.commandsDir = options.commandsDir || 'commands';
     this.eventsDir = options.eventsDir || 'events';
     this.allowDMs = options.allowDMs || true;
+    this.sendErrors = bool(options.sendErrors) || false;
+    this.logErrors = bool(options.logErrors) || true;
     this.client = client || new Discord.Client();
+    this.discord = Discord;
 
     this.setCommandsDir = this.setCommandsDir.bind(this);
     this.setEventsDir = this.setEventsDir.bind(this);
@@ -55,10 +58,18 @@ class SimplyDiscord {
           const prefix = this.client.prefixes.get((message.guild && message.guild.id) || '123') || this.defaultPrefix;
           let cmd = messageArray[0].slice(prefix.length);
           let args = messageArray.slice(1);
-
-          if (!this.client.commands) return log('You have no commands available', logs.warn, true);
-          const command = this.client.commands.get(cmd) ? this.client.commands.get(cmd) : this.client.commands.get(this.client.aliases.get(cmd));
-          if (command) await command.run(this.client, this, message, args);
+          try {
+            if (!this.client.commands) return log('You have no commands available', logs.warn, true);
+            const command = this.client.commands.get(cmd) ? this.client.commands.get(cmd) : this.client.commands.get(this.client.aliases.get(cmd));
+            if (command) await command.run(this.client, this, message, args);
+          } catch (err) {
+            console.log('CAUGHT ERRR', err.message || err)
+            if (this.sendErrors) await message.reply(`An error occurred during that last operation:\n\`\`\`diff\n- ${err.message || err}\n\`\`\``);
+            if (this.logErrors) {
+              await log(`${err.message || err}`, 'ERROR', true);
+              console.log(err.stack);
+            }
+          }
         });
       } catch (err) {
         await log(`An error occurred - ${err.message || err}`, 'ERROR', true);
@@ -210,6 +221,14 @@ async function getAllFiles(dirPath, arrayOfFiles = [], arrayOfCategories = []) {
     // Stop invalid dir errors
   }
   return {files: arrayOfFiles, categories: arrayOfCategories};
+}
+
+// Check the value sent is a boolean
+function bool(value) {
+  if (!value) return false;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return (value.toLowerCase() === 'true');
+  return !!value;
 }
 
 // Export the class

@@ -53,6 +53,7 @@ class SimplyDiscord {
           let messageArray = message.content.split(/\s+/g);
           // TODO find a better way to handle no guild
           const prefix = this.client.prefixes.get((message.guild && message.guild.id) || '123') || this.defaultPrefix;
+          if (!message.content.startsWith(prefix)) return null;
           let cmd = messageArray[0].slice(prefix.length);
           let args = messageArray.slice(1);
 

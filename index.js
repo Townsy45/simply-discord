@@ -1,8 +1,9 @@
-const Discord = require('discord.js');
-const {log} = require('mustang-log');
-const fs = require('fs');
-const {join} = require('path');
-
+const Discord = require("discord.js");
+const { log } = require("mustang-log");
+const fs = require("fs");
+const { join } = require("path");
+const moment = require("moment");
+require("moment-duration-format");
 /**
  * SimplyDiscord
  * @class
@@ -26,9 +27,9 @@ class SimplyDiscord {
       client = null;
     }
 
-    this.defaultPrefix = options.defaultPrefix || '!';
-    this.commandsDir = options.commandsDir || 'commands';
-    this.eventsDir = options.eventsDir || 'events';
+    this.defaultPrefix = options.defaultPrefix || "!";
+    this.commandsDir = options.commandsDir || "commands";
+    this.eventsDir = options.eventsDir || "events";
     this.allowDMs = options.allowDMs || true;
     this.client = client || new Discord.Client();
 
@@ -41,28 +42,50 @@ class SimplyDiscord {
 
     (async () => {
       try {
-        await log('Attempting to load COMMANDS and EVENTS ...', logs.load, true);
+        await log(
+          "Attempting to load COMMANDS and EVENTS ...",
+          logs.load,
+          true
+        );
         await loadCommands(this.client, this.commandsDir);
         await loadEvents(this, this.client, this.eventsDir);
-        if (!this.client.prefixes) this.client.prefixes = new Discord.Collection();
+        if (!this.client.prefixes)
+          this.client.prefixes = new Discord.Collection();
 
-        this.client.on('message', async (message) => {
-          if (message.author.bot || (!this.allowDMs && !message.guild)) return null;
+        this.cooldowns = new Discord.Collection();
+
+        this.client.on("message", async (message) => {
+          if (message.author.bot || (!this.allowDMs && !message.guild))
+            return null;
 
           // Sorts arguments and message content
           let messageArray = message.content.split(/\s+/g);
           // TODO find a better way to handle no guild
-          const prefix = this.client.prefixes.get((message.guild && message.guild.id) || '123') || this.defaultPrefix;
+          const prefix =
+            this.client.prefixes.get(
+              (message.guild && message.guild.id) || "123"
+            ) || this.defaultPrefix;
           if (!message.content.startsWith(prefix)) return null;
           let cmd = messageArray[0].slice(prefix.length);
           let args = messageArray.slice(1);
 
-          if (!this.client.commands) return log('You have no commands available', logs.warn, true);
-          const command = this.client.commands.get(cmd) ? this.client.commands.get(cmd) : this.client.commands.get(this.client.aliases.get(cmd));
-          if (command) await command.run(this.client, this, message, args);
+          if (!this.client.commands)
+            return log("You have no commands available", logs.warn, true);
+          const command = this.client.commands.get(cmd)
+            ? this.client.commands.get(cmd)
+            : this.client.commands.get(this.client.aliases.get(cmd));
+
+          if (command) {
+            const cooldown = checkCooldown(message, command, this.cooldowns);
+            if (typeof cooldown === "string")
+              return message.channel.send(
+                `Please wait \`${cooldown}\` before running \`${command.name}\` again!`
+              );
+            await command.run(this.client, this, message, args);
+          }
         });
       } catch (err) {
-        await log(`An error occurred - ${err.message || err}`, 'ERROR', true);
+        await log(`An error occurred - ${err.message || err}`, "ERROR", true);
       }
     })();
   }
@@ -116,7 +139,7 @@ class SimplyDiscord {
    * @return {SimplyDiscord}
    */
   toggleDMs(value) {
-    if (typeof value === 'boolean') this.allowDMs = value;
+    if (typeof value === "boolean") this.allowDMs = value;
     else this.allowDMs = !this.allowDMs;
     return this;
   }
@@ -128,17 +151,30 @@ class SimplyDiscord {
    */
   async reload(section = null) {
     section = section ? section.toString().toLowerCase() : section;
-    await log(`RE-LOADING ${section === 'events' ? '' : 'COMMANDS '}${!section ? 'AND ' : ''}${section === 'commands' ?  '' : 'EVENTS '}...`, logs.load, true);
+    await log(
+      `RE-LOADING ${section === "events" ? "" : "COMMANDS "}${
+        !section ? "AND " : ""
+      }${section === "commands" ? "" : "EVENTS "}...`,
+      logs.load,
+      true
+    );
     try {
-      if (!section || section === 'commands') await loadCommands(this.client, this.commandsDir);
-      if (!section || section === 'events') await loadEvents(this, this.client, this.eventsDir);
-      await log('Reload Complete!', logs.done, true);
+      if (!section || section === "commands")
+        await loadCommands(this.client, this.commandsDir);
+      if (!section || section === "events")
+        await loadEvents(this, this.client, this.eventsDir);
+      await log("Reload Complete!", logs.done, true);
     } catch (err) {
-      await log(`Error while restarting the instance - ${err.message || err} - ${err.stack}`, 'ERROR', true);
+      await log(
+        `Error while restarting the instance - ${err.message || err} - ${
+          err.stack
+        }`,
+        "ERROR",
+        true
+      );
     }
     return this;
   }
-
 }
 
 // Event Handler
@@ -149,7 +185,7 @@ async function loadEvents(instance, client, dir) {
   const events = await getAllFiles(eventDir);
   for (const file of events.files) {
     const event = require(file);
-    if (event && event.name && typeof event.run === 'function') {
+    if (event && event.name && typeof event.run === "function") {
       client.events.set(event.name, event);
       if (event.once) {
         client.once(event.name, event.run.bind(null, client, instance));
@@ -161,7 +197,11 @@ async function loadEvents(instance, client, dir) {
   }
 
   const amount = client.events ? client.events.size : 0;
-  await log(`Loaded ${amount} event${amount === 1 ? '' : 's'}`, (amount < 1) ? logs.warn : 'INFO', true)
+  await log(
+    `Loaded ${amount} event${amount === 1 ? "" : "s"}`,
+    amount < 1 ? logs.warn : "INFO",
+    true
+  );
 
   return eventDir;
 }
@@ -181,7 +221,8 @@ async function loadCommands(client, dir) {
   if (commands && commands.categories) client.categories = commands.categories;
 
   // Set the commands and aliases
-  if (!commands || !commands.files) return log('No Commands Found!', logs.warn, true);
+  if (!commands || !commands.files)
+    return log("No Commands Found!", logs.warn, true);
 
   for (const f of commands.files) {
     const props = require(f);
@@ -192,9 +233,32 @@ async function loadCommands(client, dir) {
     }
   }
 
-
   const amount = client.commands ? client.commands.size : 0;
-  await log(`Loaded ${amount} command${amount === 1 ? '' : 's'}`, (amount < 1) ? logs.warn : 'INFO', true)
+  await log(
+    `Loaded ${amount} command${amount === 1 ? "" : "s"}`,
+    amount < 1 ? logs.warn : "INFO",
+    true
+  );
+}
+
+//check for cooldowns
+function checkCooldown(message, command, cooldowns) {
+  if (message.author.permLevel > 4) return false;
+  const cooldown = command.cooldown * 1000;
+  const cooldownLimits = cooldowns.get(message.author.id) || {}; // get the ENMAP first.
+  if (!cooldownLimits[command.name])
+    cooldownLimits[command.name] = Date.now() - cooldown; // see if the command has been run before if not, add the ratelimit
+  const difference = Date.now() - cooldownLimits[command.name]; // easier to see the difference
+  if (difference < cooldown) {
+    // check the if the duration the command was run, is more than the cooldown
+    return moment
+      .duration(cooldown - difference)
+      .format("D [days], H [hours], m [minutes], s [seconds]", 1); // returns a string of the amount of time left to send to a channel
+  } else {
+    cooldownLimits[command.name] = Date.now(); // set the key to now, to mark the start of the cooldown
+    cooldowns.set(message.author.id, cooldownLimits); // set it to the collection
+    return true;
+  }
 }
 
 // Get all files recursively
@@ -205,23 +269,26 @@ async function getAllFiles(dirPath, arrayOfFiles = [], arrayOfCategories = []) {
     for (const file of files) {
       if (fs.statSync(dirPath + "/" + file).isDirectory()) {
         arrayOfCategories.push(file);
-        await getAllFiles(dirPath + "/" + file, arrayOfFiles, arrayOfCategories);
+        await getAllFiles(
+          dirPath + "/" + file,
+          arrayOfFiles,
+          arrayOfCategories
+        );
       } else {
         arrayOfFiles.push(join(dirPath, "/", file));
       }
     }
-
   } catch (err) {
     // Stop invalid dir errors
   }
-  return {files: arrayOfFiles, categories: arrayOfCategories};
+  return { files: arrayOfFiles, categories: arrayOfCategories };
 }
 
 // Export the class
 module.exports = SimplyDiscord;
 
 const logs = {
-  done: {name: 'DONE', bgColor: '#2bba2b', textColor: '#ffffff'},
-  load: {name: 'LOADING', bgColor: '#0042a2', textColor: '#ffffff'},
-  warn: {name: 'WARNING', bgColor: '#d2cb00', textColor: '#ffffff'}
-}
+  done: { name: "DONE", bgColor: "#2bba2b", textColor: "#ffffff" },
+  load: { name: "LOADING", bgColor: "#0042a2", textColor: "#ffffff" },
+  warn: { name: "WARNING", bgColor: "#d2cb00", textColor: "#ffffff" },
+};

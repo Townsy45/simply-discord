@@ -62,7 +62,7 @@ class SimplyDiscord {
 
           if (!this.client.commands) return log('You have no commands available', logs.warn, true);
           const command = this.client.commands.get(cmd) ? this.client.commands.get(cmd) : this.client.commands.get(this.client.aliases.get(cmd));
-          if (command) {
+          if (command && command.run) {
             const cooldown = checkCooldown(message, command, this.client.cooldowns);
             if (cooldown) return message.channel.send(`Please wait \`${cooldown}\` before running \`${command.name}\` again!`);
             await command.run(this.client, this, message, args);
@@ -192,7 +192,7 @@ async function loadCommands(client, dir) {
 
   for (const f of commands.files) {
     const props = require(f);
-    if (!props || !props.name) continue;
+    if (!props || !props.name || !props.run) continue;
     client.commands.set(props.name, props);
     if (props.aliases && Array.isArray(props.aliases)) {
       for (const alias of props.aliases) client.aliases.set(alias, props.name);

@@ -88,6 +88,7 @@ module.exports = {
   name: 'ping',
   aliases: ['p'],
   category: 'Utils',
+  cooldown: 10, /* In seconds, this example is 10 seconds */
   async run (client, handler, message, args) {
     // Your command code ...
   }

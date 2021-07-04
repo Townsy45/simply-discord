@@ -65,7 +65,7 @@ class SimplyDiscord {
           if (command) {
             const cooldown = checkCooldown(message, command, this.client.cooldowns);
             if (cooldown) return message.channel.send(`Please wait \`${cooldown}\` before running \`${command.name}\` again!`);
-            await command.run({ this.client, this, message, args });
+            await command.run(this.client, this, message, args);
           }
         });
       } catch (err) {

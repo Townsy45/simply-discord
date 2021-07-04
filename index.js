@@ -2,6 +2,8 @@ const Discord = require('discord.js');
 const {log} = require('mustang-log');
 const fs = require('fs');
 const {join} = require('path');
+const moment = require("moment");
+require("moment-duration-format");
 
 /**
  * SimplyDiscord
@@ -45,6 +47,7 @@ class SimplyDiscord {
         await loadCommands(this.client, this.commandsDir);
         await loadEvents(this, this.client, this.eventsDir);
         if (!this.client.prefixes) this.client.prefixes = new Discord.Collection();
+        if (!this.client.cooldowns) this.client.cooldowns = new Discord.Collection();
 
         this.client.on('message', async (message) => {
           if (message.author.bot || (!this.allowDMs && !message.guild)) return null;
@@ -59,7 +62,11 @@ class SimplyDiscord {
 
           if (!this.client.commands) return log('You have no commands available', logs.warn, true);
           const command = this.client.commands.get(cmd) ? this.client.commands.get(cmd) : this.client.commands.get(this.client.aliases.get(cmd));
-          if (command) await command.run(this.client, this, message, args);
+          if (command) {
+            const cooldown = checkCooldown(message, command, this.client.cooldowns);
+            if (cooldown) return message.channel.send(`Please wait \`${cooldown}\` before running \`${command.name}\` again!`);
+            await command.run(this.client, this, message, args);
+          }
         });
       } catch (err) {
         await log(`An error occurred - ${err.message || err}`, 'ERROR', true);
@@ -128,7 +135,7 @@ class SimplyDiscord {
    */
   async reload(section = null) {
     section = section ? section.toString().toLowerCase() : section;
-    await log(`RE-LOADING ${section === 'events' ? '' : 'COMMANDS '}${!section ? 'AND ' : ''}${section === 'commands' ?  '' : 'EVENTS '}...`, logs.load, true);
+    await log(`RE-LOADING ${section === 'events' ? '' : 'COMMANDS '}${!section ? 'AND ' : ''}${section === 'commands' ? '' : 'EVENTS '}...`, logs.load, true);
     try {
       if (!section || section === 'commands') await loadCommands(this.client, this.commandsDir);
       if (!section || section === 'events') await loadEvents(this, this.client, this.eventsDir);
@@ -197,6 +204,21 @@ async function loadCommands(client, dir) {
   await log(`Loaded ${amount} command${amount === 1 ? '' : 's'}`, (amount < 1) ? logs.warn : 'INFO', true)
 }
 
+// Check for cooldowns
+function checkCooldown(message, command, cooldowns) {
+  if (message.author.permLevel > 4 || !command.cooldown) return;
+
+  const cooldown = command.cooldown * 1000;
+  const cooldownLimits = cooldowns.get(message.author.id) || {};
+
+  if (!cooldownLimits[command.name]) cooldownLimits[command.name] = Date.now() - cooldown;
+
+  const difference = Date.now() - cooldownLimits[command.name];
+  if (difference < cooldown) return moment.duration(cooldown - difference).format("D [days], H [hours], m [minutes], s [seconds]", 1);
+
+  cooldownLimits[command.name] = Date.now();
+  cooldowns.set(message.author.id, cooldownLimits);
+}
 // Get all files recursively
 async function getAllFiles(dirPath, arrayOfFiles = [], arrayOfCategories = []) {
   try {

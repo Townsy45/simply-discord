@@ -13,7 +13,7 @@ class SimplyDiscord {
   /**
    * Simply Discord Constructor
    * @constructor
-   * @param {Discord.client} client - The Discord.js Client
+   * @param {Discord.client|object} client - The Discord.js Client
    * @param {Object} options - An object of options
    * @example
    * new SimplyDiscord(client, {

@@ -28,29 +28,55 @@ const { client } = new SimplyDiscord({
 
 | Param | Type | Info
 | ------------- | :---: | ------------- |
-| **client**  | `Discord.Client`  | The Discord client, if not passed one will be created
-| **options**  | `object`  | More info below
+| client  | `Discord.Client`  | The Discord client, if not passed one will be created
+| options  | `object`  | More info below
 
 **Available Options:**
 
 | Option | Type | Default | Info |
 | ------------- | :---: | :---: | ------------- |
-| **options**  | `object`  | `undefined` | Options to configure the handler
-| **options.defaultPrefix**  | `string`  | `!` | Default prefix to use in-case of no guild prefix
-| **options.commandsDir**  | `string`  | `./commands` | Folder containing all your commands
-| **options.eventsDir**  | `string`  | `./events` | Folder containing your event files
-| **options.allowDMs**  | `boolean`  | `true` | Bot should respond in DMs?
+| options  | `object`  | `undefined` | Options to configure the handler
+| options.defaultPrefix  | `string`  | `!` | Default prefix to use in-case of no guild prefix
+| options.commandsDir  | `string`  | `./commands` | Folder containing all your commands
+| options.eventsDir  | `string`  | `./events` | Folder containing your event files
+| options.allowDMs  | `boolean`  | `true` | Bot should respond in DMs?
 
-**Handler Functions:**
+## Handler Functions:
+
+```js
+// Example Functions
+const Handler = new SimplyDiscord();
+
+// Set the guild prefix
+Handler.setGuildPrefix('714478443099873310', '-');
+
+// Set the dir but do not reload commands
+Handler.setCommandsDir('./commands/sub', false);
+
+// Set the events dir
+// By default it will reload commands/events
+Handler.setEventsDir('./events/new');
+
+// Manually reload commands/events (Default will reload both)
+Handler.reload('commands'); // Reload just commands
+Handler.reload('events'); // Reload just events
+Handler.reload(); // Reload both
+
+// Toggle DMs (Specify true/false or it will flip the current state)
+console.log(Handler.allowDMs) // Output -> True
+Handler.toggleDMs();
+console.log(Handler.allowDMs) // Output -> False
+
+```
 
 | Function | Params | Info |
 | ------------- | :---: | ------------- |
-| **setCommandsDir**  | `('Directory')`  | Update the folder where your commands are located |
-| **setDefaultPrefix**  | `('Prefix')`  | Update the default prefix |
-| **setGuildPrefix**  | `('GuildID', 'Prefix')`  | Set the guild prefix to the client.prefixes collection |
-| **setEventsDir**  | `('Directory')`  | Update the folder where your events are located |
-| **toggleDMs**  | `(true/false)`  | Toggle if DMs should be allowed, sending nothing with switch it |
-| **reload**  | `('commands'/'events')`  | Reload commands/events or both |
+| setCommandsDir  | `('Directory')`  | Update the folder where your commands are located |
+| setDefaultPrefix  | `('Prefix')`  | Update the default prefix |
+| setGuildPrefix  | `('GuildID', 'Prefix')`  | Set the guild prefix to the client.prefixes collection |
+| setEventsDir  | `('Directory')`  | Update the folder where your events are located |
+| toggleDMs  | `(true/false)`  | Toggle if DMs should be allowed, sending nothing with switch it |
+| reload  | `('commands'/'events')`  | Reload commands/events or both |
 
 ## Usage
 
@@ -89,7 +115,7 @@ module.exports = {
   aliases: ['p'],
   category: 'Utils',
   cooldown: 10, /* In seconds, this example is 10 seconds */
-  async run (client, handler, message, args) {
+  async run ({ client, handler, message, args }) {
     // Your command code ...
   }
 };
@@ -115,15 +141,11 @@ module.exports = {
   <summary>Future Ideas</summary>
   <ol>
     <li>
-      <a>Add an option to restart when updating Directories.</a>
-    </li>
-    <li>
       <a> Look into finding a better way to handle the guild checking.</a>
       <ul>
         <li><a> Relates to index.js Message event get prefix.</a></li>
       </ul>
     </li>
-    <li><a>Add a cooldown system (Simply Version)</a></li>
     <li><a>Add setCooldown(time, guildWide) set the time and if to apply to everyone in the guild.</a></li>
     <li><a>Add toggleCooldown(true) set the cooldown to True/False or toggle on/off</a></li>
   </ol>

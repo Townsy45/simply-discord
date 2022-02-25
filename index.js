@@ -32,7 +32,15 @@ class SimplyDiscord {
     this.commandsDir = options.commandsDir || 'commands';
     this.eventsDir = options.eventsDir || 'events';
     this.allowDMs = options.allowDMs || true;
-    this.client = client || new Discord.Client();
+    this.testServers = Array.isArray(options.testServers) ? options.testServers : [];
+    this.client = client || new Discord.Client({
+      intents: [
+        Discord.Intents.FLAGS.GUILDS,
+        Discord.Intents.FLAGS.GUILD_MESSAGES,
+        Discord.Intents.FLAGS.DIRECT_MESSAGES,
+        ...(options?.intents || [])
+      ]
+    });
 
     this.setCommandsDir = this.setCommandsDir.bind(this);
     this.setEventsDir = this.setEventsDir.bind(this);
@@ -49,7 +57,7 @@ class SimplyDiscord {
         if (!this.client.prefixes) this.client.prefixes = new Discord.Collection();
         if (!this.client.cooldowns) this.client.cooldowns = new Discord.Collection();
 
-        this.client.on('message', async (message) => {
+        this.client.on('messageCreate', async (message) => {
           if (message.author.bot || (!this.allowDMs && !message.guild)) return null;
 
           // Sorts arguments and message content
@@ -68,11 +76,80 @@ class SimplyDiscord {
             await command.run({
               client: this.client,
               handler: this,
-              message,
-              args
-            });
+              message, args
+            })
           }
         });
+        // Handle creating slash commands
+        this.client.on('ready', async () => {
+
+          if (!this.client?.slashCommands) return;
+
+          const testServerCommands = await this.testServers.map(async ts => (await this.client.guilds?.fetch(ts))?.commands);
+
+          for (const [name, props] of this.client?.slashCommands) {
+            const destinations = props?.global
+              ? [this.client.application?.commands]
+              : this.testServers?.length
+                ? testServerCommands
+                : [];
+
+            for (const dest of destinations) {
+
+              const _d = await dest, cmdData = {
+                name,
+                description: props.description || `${name.charAt(0).toUpperCase() + name.slice(1)} Command`,
+                options: props?.options ? [...props?.options] : []
+              };
+
+              const destinationCommands = (await _d?.fetch()) || [];
+
+              if (destinationCommands) {
+                for (const [key, value] of destinationCommands) {
+                  // console.log('Command', key, value);
+                  const slash = this.client?.slashCommands?.get(value?.name);
+                  const globalConvert = testServerCommands.find(async s => s?.name === value?.name) && props?.global;
+
+                  if (!slash) {
+                    console.log('Deleting', value?.name, key);
+                    await removeSlashCommand(key, testServerCommands, this.client.application?.commands);
+                    continue;
+                  } else if (globalConvert) {
+                    console.log('Converting to Global', value?.name, key);
+                    await removeSlashCommand(key, testServerCommands);
+                  }
+
+                  console.log('Creating Command - within', name)
+                  await _d?.create(cmdData);
+                }
+              } else {
+                console.log('Creating Command', name, _d)
+                await _d?.create(cmdData);
+              }
+            }
+          }
+        });
+
+        // Handle Interaction Commands
+        this.client.on('interactionCreate', async (interaction) => {
+          if (!interaction.isCommand()) return null;
+          const { commandName, options } = interaction;
+
+          // Get the slash command by name or alias
+          const command = this.client.slashCommands.get(commandName)
+            || this.client.slashCommands.get(this.client.aliases.get(commandName));
+
+          // Run command if slash command
+          if (command && command?.slash) {
+            await command.run({
+              client: this.client,
+              handler: this,
+              interaction, options
+            });
+          }
+
+        });
+
       } catch (err) {
         await log(`An error occurred - ${err.message || err}`, 'ERROR', true);
       }
@@ -206,6 +283,7 @@ async function loadCommands(client, dir, reload) {
   const commandDir = join(require.main.path, dir);
   // Set collections
   client.commands = new Discord.Collection();
+  client.slashCommands = new Discord.Collection();
   client.aliases = new Discord.Collection();
   client.categories = new Discord.Collection();
 
@@ -219,7 +297,19 @@ async function loadCommands(client, dir, reload) {
     if (reload) delete require.cache[require.resolve(f)];
     const props = require(f);
     if (!props || !props.name || !props.run) continue;
-    client.commands.set(props.name, props);
+
+    if (props?.options) props.options = props.options.map(o => {
+      return {
+        ...o,
+        name: o?.name?.toLowerCase() || o?.name,
+        type: Discord.Constants.ApplicationCommandOptionTypes[o?.type?.toString().toUpperCase()] || o?.type
+      };
+    });
+
+    const _slash = props?.slash?.toString()?.toLowerCase();
+    console.log('SLASH', _slash)
+    if (['both', 'true'].includes(_slash)) client.slashCommands.set(props.name, props);
+    if (!_slash || _slash === 'both') client.commands.set(props.name, props);
 
     // Sort Categories
     const _cat = props.category || 'default';
@@ -231,7 +321,7 @@ async function loadCommands(client, dir, reload) {
     }
   }
 
-  const amount = client.commands ? client.commands.size : 0;
+  const amount = client?.commands?.filter(c => !client?.slashCommands?.find(sc => sc.name === c.name))?.size + client?.slashCommands?.size || 0;
   await log(`Loaded ${amount} command${amount === 1 ? '' : 's'}`, (amount < 1) ? logs.warn : 'INFO', true)
 }
 
@@ -267,6 +357,42 @@ async function getAllFiles(dirPath, arrayOfFiles = []) {
     // Stop invalid dir errors
   }
   return arrayOfFiles;
+}
+
+// TODO - Add dynamic custom response handling for both command types.
+// Handle a function response, both slash and legacy
+// function handleCommandResponse(type, instance, res) {
+//
+//   console.log('IS EMBED RESPONSE', res instanceof Discord.MessageEmbed, res);
+//
+//   if (!type || !res) return;
+//   if (res instanceof Discord.MessageEmbed) console.log('IS EMBED');
+//
+//   switch (type) {
+//     case 'slash':
+//       instance.reply(typeof res === 'object' ? res : { content: res })
+//       break;
+//     case 'message':
+//       instance.channel.send(typeof res === 'object' ? res : { content: res });
+//       break;
+//   }
+// }
+
+async function removeSlashCommand(id, testGuildCommands, globalCommands) {
+  // Check ID is sent
+  if (!id) return;
+  // Try to remove all instances of command
+  try {
+    if (testGuildCommands) {
+      for (const server of testGuildCommands.map(s => s?.cache?.get(id))) {
+        await server?.delete(id);
+      }
+    }
+    if (globalCommands && globalCommands?.get(id)) await globalCommands?.delete(id);
+  } catch (e) {
+    // Log any errors
+    await log('Failed removing slash command (id)\n' + e.message || e, logs.error, true);
+  }
 }
 
 // Export the class
